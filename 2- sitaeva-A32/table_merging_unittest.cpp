@@ -10,6 +10,7 @@ extern "C" {
 #define TABLE_2_FILE_NAME "test_table_2"
 #define FINAL_TABLE_NAME "test_output"
 #define TEST_LINE_LENGTH 50
+#define TEST_KEY_LENGTH 30
 
 
 TEST(tables_merging_testing_first_colomn_simple_key, empty_tables_merge){
@@ -454,4 +455,33 @@ TEST(tables_merging_testing_first_colomn_key,
 	remove(TABLE_1_FILE_NAME);
 	remove(TABLE_2_FILE_NAME);
 	remove(FINAL_TABLE_NAME);
+}
+
+TEST(get_key_test, empty_line) {
+	char line[TEST_LINE_LENGTH] = {'\0'};
+	char key[TEST_KEY_LENGTH] = {'\0'};
+	get_key(1, line, key);
+	EXPECT_EQ(strcmp(key, "\0"),0);
+}
+
+TEST(get_key_test, one_element_in_line) {
+	char line[] = "Abrosimov\n";
+	char key[TEST_KEY_LENGTH];
+	get_key(0, line, key);
+	EXPECT_EQ(strcmp(key, "Abrosimov"), 0);
+}
+
+
+TEST(get_key_test, key_in_first_col_in_line) {
+	char line[] = "Abrosimov,16,Moscow\n";
+	char key[TEST_KEY_LENGTH];
+	get_key(1, line, key);
+	EXPECT_EQ(strcmp(key, "16"), 0);
+}
+
+TEST(get_key_test, key_in_last_col_in_line) {
+	char line[] = "Abrosimov,16,Moscow\0";
+	char key[TEST_KEY_LENGTH];
+	get_key(2, line, key);
+	EXPECT_EQ(strcmp(key, "Moscow"), 0);
 }
