@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "queen_solver.h"
@@ -91,3 +92,19 @@ Cell* queen_task_solver(unsigned size){
 	
 	return solve;
 } 
+
+void print_solve_to_file(Cell* solve, unsigned board_size, const char* filename){
+	
+	FILE* file = fopen(filename, "w");
+	if (!file)
+		return;
+	
+	if (!solve){
+		fprintf(file, "0");
+	}
+	else{
+		for (unsigned i = 0; i < board_size; i++)
+			fprintf(file, "%u %u\n", solve[i].row, solve[i].colomn);
+	}
+	fclose(file);
+}
