@@ -110,7 +110,7 @@ void bin_remove(BinNode** tree, int val){
 				else{
 					(*tree) = (*tree)->left;
 				}
-				return;
+				break;
 			}
 
 			if (leaf_left_flag)
@@ -121,7 +121,7 @@ void bin_remove(BinNode** tree, int val){
 			bin_insert_node(tree, node->left);
 			bin_insert_node(tree, node->right);
 			free(node);
-			return;
+			break;
 		}
 		else{
 			parent = node;
