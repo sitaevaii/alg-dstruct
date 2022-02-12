@@ -365,65 +365,65 @@ void SetPos(int x, int y) {
 }
 
 
+int TreeHeight(RB_node* root){
+	RB_node* current = root;
+	int h1 = 0, h2 = 0;
+	if (current == NULL) {
+		return 0;
+	}	
+	if (current->left) {
+		h1 = TreeHeight(current->left);
+	}
+	if (current->right) {
+		h2 = TreeHeight(current->right);
+	}
+	return max(h1, h2) + 1;
+}
+
+
 int x = 1;
-int offset_right = X_OFFSET / 2;
-int offset_left = X_OFFSET / 2;
-void printRightLines(int y, int local_x) {
-	for (int i = 1; i < 2; i++){
-		SetPos(local_x + X_OFFSET /2, y-i);
-		printf("%c", '|');
-	}
-	for (int i = 1; i < offset_right - 1; i++) {
-		SetPos(local_x + X_OFFSET / 2 + i, y- 2);
-		printf("%c", '_');
-	}
-	
-}
-void printLeftLines(int y, int local_x) {
+void printRightLines(int y, int local_x, int prev_x) {
 	for (int i = 1; i < 2; i++) {
-		SetPos(local_x , y - i); //+ X_OFFSET / 2
+		SetPos(local_x + X_OFFSET / 2, y - i);
 		printf("%c", '|');
 	}
-	for (int i = 1; i < offset_left - 2 - offset_right - X_OFFSET / 2; i++) {
-		SetPos(local_x - i, y - 2);
+	for (int i = 1; i < prev_x - local_x - X_OFFSET / 2; i++) {
+		SetPos(local_x + X_OFFSET / 2 + i, y - 2);
 		printf("%c", '_');
 	}
 
 }
-//void _printTree(RB_node* node, int y) {
-//	if (node != NULL) {
-//		_printTree(node->left, y + Y_OFFSET);
-//		SetPos(x, y);
-//		printf("%i | %s", node->data, node->color == BLACK ? "BLACK" : "RED");
-//		x += X_OFFSET;
-//		_printTree(node->right, y + Y_OFFSET);
-//	}
-//}
-void _printTree(RB_node* node, int y) {
+void printLeftLines(int y, int local_x, int prev_x) {
+	for (int i = 1; i < 2; i++) {
+		SetPos(local_x + X_OFFSET / 2, y - i); 
+		printf("%c", '|');
+	}
+	for (int i = 1; i < local_x - prev_x - X_OFFSET / 2; i++) {
+		SetPos(local_x + X_OFFSET / 2 - i, y - 2);
+		printf("%c", '_');
+	}
+
+}
+void _printTree(RB_node* node, int y, int prev_x) {
 	if (node != NULL) {
-		_printTree(node->left, y + Y_OFFSET);
+		_printTree(node->left, y + Y_OFFSET, x);
 		SetPos(x, y);
-		printf("%i | %s", node->data, node->color == BLACK ? "BLACK" : "RED");	
+		printf("(%i | %s)", node->data, node->color == BLACK ? "BLACK" : "RED");	
 		int local_x = x;
-		/*int local_r_of = 0;
-		if (node->right != NULL) {
-			local_r_of += X_OFFSET;
-		}*/
 		x += X_OFFSET;		
-		_printTree(node->right, y + Y_OFFSET);
-		if (node->parent != NULL && node->parent->left == node) { // переделать if
-			printRightLines(y, local_x);
-			//offset_left += X_OFFSET;
-		}
-		else if (node->parent != NULL){
-			//printLeftLines(y, local_r_of);
-			offset_right += X_OFFSET;
+		_printTree(node->right, y + Y_OFFSET, local_x);	
+		if (node->parent != NULL) {
+			if (node->parent->left == node) { 
+				printRightLines(y, local_x, x);
+			}
+			else {
+				printLeftLines(y, local_x, prev_x);
+			}
 		}
 	}
 }
-
-
 void PrintTree(RB_tree* tree, int start_y_pos) {
-	_printTree(tree->root, start_y_pos);
+	_printTree(tree->root, start_y_pos, 0);
+	SetPos(0, TreeHeight(tree->root) + start_y_pos + 2);
 	x = 1;
 }
