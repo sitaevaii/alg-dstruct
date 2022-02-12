@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
+#include <Windows.h>
 typedef enum {
 	RED,
 	BLACK
@@ -17,17 +18,30 @@ typedef struct RB_tree {
 }RB_tree;
 
 
-void LeftRotate(RB_tree* tree, RB_node* father) {
-	RB_node* r_child = father->right;
-
-	father->right = r_child->left;
-	if (r_child->left != NULL) { 
-		r_child->left->parent = father; 
+RB_tree* RBTreeInit() {
+	RB_tree* tree = malloc(sizeof(RB_tree));
+	if (tree != NULL) {
+		tree->root = NULL;
 	}
+	return tree;
+}
 
+
+void LeftRotate(RB_tree* tree, RB_node* father) {
+	if (father == NULL) {
+		return;
+	}
+	RB_node* r_child = NULL;
+	if (father->right != NULL) {
+		r_child = father->right;
+		father->right = r_child->left;
+		if (r_child->left != NULL) {
+			r_child->left->parent = father;
+		}
+	}
 	if (r_child != NULL) {
 		r_child->parent = father->parent;
-		r_child->left = father; // Возможно очибка здесь
+		r_child->left = father;
 	}
 	if (father->parent != NULL) {
 		if (father == father->parent->left)
@@ -38,22 +52,22 @@ void LeftRotate(RB_tree* tree, RB_node* father) {
 	else {
 		tree->root = r_child;
 	}
-
-	if (father != NULL) {
-		father->parent = r_child;
-	}
+	father->parent = r_child;
 }
 
 
 void RightRotate(RB_tree* tree, RB_node* father) {
-	RB_node* l_child = father->left;
-
-	father->left = l_child->right;
-	if (l_child->right != NULL) {
-		l_child->right->parent = father;
+	if (father == NULL) {
+		return;
 	}
-
-
+	RB_node* l_child = NULL; 
+	if (father->left != NULL) {
+		l_child = father->left;
+		father->left = l_child->right;
+		if (l_child->right != NULL) {
+			l_child->right->parent = father;
+		}
+	}
 	if (l_child != NULL) {
 		l_child->parent = father->parent;
 		l_child->right = father;
@@ -67,17 +81,14 @@ void RightRotate(RB_tree* tree, RB_node* father) {
 	else {
 		tree->root = l_child;
 	}
-
-	if (father != NULL) {
-		father->parent = l_child;
-	}
+	father->parent = l_child;
 }
 
 
 void InsertFixup(RB_tree* tree, RB_node* node) {
-	while (node != tree->root && node->parent->color == RED) {
+	while (node != NULL && node != tree->root && node->parent->color == RED && node->parent->parent != NULL) {
 		if (node->parent == node->parent->parent->left) {
-			RB_node* r_brother_of_parent = node->parent->parent->right; // Возможно тут нужна проверка, если дяди нет
+			RB_node* r_brother_of_parent = node->parent->parent->right; 
 			if (r_brother_of_parent != NULL && r_brother_of_parent->color == RED) {
 				node->parent->color = BLACK;
 				r_brother_of_parent->color = BLACK;
@@ -89,22 +100,22 @@ void InsertFixup(RB_tree* tree, RB_node* node) {
 					node = node->parent; 
 					LeftRotate(tree, node);
 				}
-				node->parent->color = BLACK;
-				node->parent->parent->color = RED;
-				RightRotate(tree, node->parent->parent);
+				if (node->parent != NULL) {
+					node->parent->color = BLACK;
+					node->parent->parent->color = RED;
+					RightRotate(tree, node->parent->parent);
+				}
 			}
 		}
 		else {
 			RB_node* l_brother_of_parent = node->parent->parent->left;
 			if (l_brother_of_parent != NULL && l_brother_of_parent->color == RED) {
-
 				node->parent->color = BLACK;
 				l_brother_of_parent->color = BLACK;
 				node->parent->parent->color = RED;
 				node = node->parent->parent;
 			}
 			else {
-
 				if (node == node->parent->left) {
 					node = node->parent;
 					RightRotate(tree,node);
@@ -115,21 +126,28 @@ void InsertFixup(RB_tree* tree, RB_node* node) {
 			}
 		}
 	}
-	tree->root->color = BLACK;
+	if (tree->root != NULL) {
+		tree->root->color = BLACK;
+	}
+	
 }
 
 
-void AddNode(RB_tree* tree, int data) {
+int InsertNode(RB_tree* tree, int data) {
 	RB_node* parent = NULL;
 	RB_node* current = tree->root;
 	while (current != NULL) {
 		if (data == current->data) {
-			return;
+			return 1;
 		}	
 		parent = current;
 		current = data < current->data ? current->left : current->right;
 	}
 	RB_node* node = malloc(sizeof(RB_node)); // add check
+	if (node == NULL) {
+		puts("malloc node error");
+		return 0;
+	}
 	node->parent = parent;
 	node->left = NULL;
 	node->right = NULL;
@@ -147,12 +165,13 @@ void AddNode(RB_tree* tree, int data) {
 		tree->root = node;
 	}
 	InsertFixup(tree, node);
+	return 1;
 }
 
 
 void DeleteFixup(RB_tree* tree, RB_node* node) {
 	while (node != tree->root && node->color == BLACK) {
-		if (node == node->parent->left) {
+		if (node->parent->right != NULL && node == node->parent->left) {
 			RB_node* w = node->parent->right;
 			//Case 1
 			if (w->color == RED) {
@@ -162,27 +181,29 @@ void DeleteFixup(RB_tree* tree, RB_node* node) {
 				w = node->parent->right;
 			}
 			//Case 2
-			if (w->left->color == BLACK && w->right->color == BLACK) {
+			if (w->left != NULL && w->right != NULL && w->left->color == BLACK && w->right->color == BLACK) {
 				w->color = RED;
 				node = node->parent;
 			}
 			else {
 				//Case 3
-				if (w->right->color == BLACK) {
+				if (w->left != NULL && w->right != NULL && w->right->color == BLACK) {
 					w->left->color = BLACK;
 					w->color = RED;
 					RightRotate(tree,w);
 					w = node->parent->right;
 				}
 				//Case 4
-				w->color = node->parent->color;
-				node->parent->color = BLACK;
-				w->right->color = BLACK;
-				LeftRotate(tree,node->parent);
+				if (w->right != NULL) {
+					w->color = node->parent->color;
+					node->parent->color = BLACK;
+					w->right->color = BLACK;
+					LeftRotate(tree, node->parent);
+				}
 				node = tree->root;
 			}
 		}
-		else {
+		else if(node->parent->left != NULL){
 			RB_node* w = node->parent->left;
 			//Case 1
 			if (w->color == RED) {
@@ -192,23 +213,25 @@ void DeleteFixup(RB_tree* tree, RB_node* node) {
 				w = node->parent->left;
 			}
 			//Case 2
-			if (w->right->color == BLACK && w->left->color == BLACK) {
+			if (w->left != NULL && w->right != NULL && w->right->color == BLACK && w->left->color == BLACK) {
 				w->color = RED;
 				node = node->parent;
 			}
 			else {
 				//Case 3
-				if (w->left->color == BLACK) {
+				if (w->left != NULL && w->right != NULL && w->left->color == BLACK) {
 					w->right->color = BLACK;
 					w->color = RED;
 					LeftRotate(tree,w);
 					w = node->parent->left;
 				}
 				//Case 4
-				w->color = node->parent->color;
-				node->parent->color = BLACK;
-				w->left->color = BLACK;
-				RightRotate(tree,node->parent);
+				if (w->left != NULL) {
+					w->color = node->parent->color;
+					node->parent->color = BLACK;
+					w->left->color = BLACK;
+					RightRotate(tree, node->parent);
+				}
 				node = tree->root;
 			}
 		}
@@ -261,10 +284,9 @@ void DeleteNode(RB_tree* tree, int data) {
 			exchange_node->parent->right = exchange_node_child;
 		}
 	}
-	else {
+	else{
 		tree->root = exchange_node_child;
 	}
-	// мб добавить проверку
 	if (exchange_node != del_node) {
 		del_node->data = exchange_node->data;
 	}	
@@ -277,13 +299,6 @@ void DeleteNode(RB_tree* tree, int data) {
 		free(exchange_node);
 	}
 	
-}
-
-
-RB_tree* RBTreeInit() {
-	RB_tree* tree = malloc(sizeof(RB_tree));
-	tree->root = NULL;
-	return tree;
 }
 
 
@@ -302,14 +317,47 @@ void FindNode(RB_tree* tree, int data) {
 }
 
 
+void Merge(RB_tree* tree_1, RB_tree* tree_2, int x) {
+
+}
+
+
+void SetPos(int x, int y){
+	COORD c;
+	c.X = x;
+	c.Y = y;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
+
+int x = 1;
+void PrintTree(RB_node* node, int y){
+	if (node != NULL){
+		PrintTree(node->left, y + 2);
+		SetPos(x, y);
+		printf("%i | %s", node->data, node->color == BLACK ? "BLACK" : "RED");
+		x += 15;
+		PrintTree(node->right, y + 2);
+	}
+}
+
+
 int main() {
 	RB_tree* tree = RBTreeInit();
+	if (tree == NULL) {
+		puts("tree init error");
+		return 0;
+	}
 	char mode;
 	int value;
-	while (scanf("%c %i", &mode, &value) >= 1) {
+	int exit_flag = 0;
+	int n = 0;
+	while (exit_flag == 0 && scanf("%c %i", &mode, &value) >= 1) {
+		n++;
 		switch (mode) {
 		case 'a':
-			AddNode(tree, value);
+			if (!InsertNode(tree, value)) {
+				return 0;
+			}
 			break;
 		case 'r':
 			DeleteNode(tree, value);
@@ -317,9 +365,17 @@ int main() {
 		case 'f':
 			FindNode(tree, value);
 			break;
+		case 'p':
+			PrintTree(tree->root, n / 2 + 1);
+			break;
+		case 'q':
+			exit_flag = 1;
+			break;
 		}
 	}
+	//PrintTree(tree->root, n/2+1);
 	free(tree);
+
 
 	return 0;
 }
