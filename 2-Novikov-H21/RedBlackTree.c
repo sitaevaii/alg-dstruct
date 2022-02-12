@@ -117,7 +117,6 @@ void InsertFixup(RB_tree* tree, RB_node* node) {
 	if (tree->root != NULL) {
 		tree->root->color = BLACK;
 	}
-
 }
 
 
@@ -278,9 +277,7 @@ void DeleteNode(RB_tree* tree, int data) {
 	if (exchange_node != del_node) {
 		del_node->data = exchange_node->data;
 	}
-
 	if (exchange_node->color == BLACK && exchange_node_child != NULL) {
-		//exchange_node_child->color = BLACK; // added
 		DeleteFixup(tree, exchange_node_child);
 	}
 	if (exchange_node != NULL) {
@@ -331,15 +328,16 @@ RB_node* find(RB_tree* tree, int h) {
 }
 
 
-RB_node* JoinToRight(RB_tree* tree_1, RB_tree* tree_2, RB_tree* merged_tree, int x, int height_1, int height_2) {
-	RB_node* Y = find(tree_1, height_2);
-	InsertNode(merged_tree, x);
-	merged_tree->root->left = Y;
-	merged_tree->root->right = tree_2->root;
-	merged_tree->root->color = RED;
-	Y->parent->right = merged_tree->root;
-	InsertFixup(tree_1, Y->parent->right);
-	return tree_1->root;
+RB_node* find_left(RB_tree* tree, int h) {
+	int curBH = CalcBlackHeight(tree);
+	RB_node* current = tree->root;
+	while (curBH != h) {
+		current = current->left;
+		if (current->color == BLACK) {
+			curBH--;
+		}
+	}
+	return current;
 }
 
 
@@ -352,7 +350,32 @@ void Merge(RB_tree* tree_1, RB_tree* tree_2, RB_tree* merged_tree, int x) {
 		merged_tree->root->right = tree_2->root;
 	}
 	else if (height_1 > height_2) {
-		merged_tree->root = JoinToRight(tree_1, tree_2, merged_tree, x, height_1, height_2);
+		RB_node* Y = find(tree_1, height_2);
+		RB_node* x_node = malloc(sizeof(RB_node));
+		x_node->data = x;
+		x_node->color = RED;
+		x_node->parent = Y->parent;
+		x_node->left = Y;
+		x_node->right = tree_2->root;
+		tree_2->root->parent = x_node;
+		Y->parent->right = x_node;
+		Y->parent = x_node;
+		InsertFixup(tree_1, x_node);
+		merged_tree->root = tree_1->root; //= JoinToRight(tree_1, tree_2, merged_tree, x, height_1, height_2);
+	}
+	else {
+		RB_node* Y = find_left(tree_2, height_1);
+		RB_node* x_node = malloc(sizeof(RB_node));
+		x_node->data = x;
+		x_node->color = RED;
+		x_node->parent = Y->parent;
+		x_node->right = Y;
+		x_node->left = tree_1->root;
+		tree_1->root->parent = x_node;
+		Y->parent->left = x_node;
+		Y->parent = x_node;
+		InsertFixup(tree_2, x_node);
+		merged_tree->root = tree_2->root;
 	}
 }
 
@@ -393,6 +416,8 @@ void printRightLines(int y, int local_x, int prev_x) {
 	}
 
 }
+
+
 void printLeftLines(int y, int local_x, int prev_x) {
 	for (int i = 1; i < 2; i++) {
 		SetPos(local_x + X_OFFSET / 2, y - i); 
@@ -404,6 +429,8 @@ void printLeftLines(int y, int local_x, int prev_x) {
 	}
 
 }
+
+
 void _printTree(RB_node* node, int y, int prev_x) {
 	if (node != NULL) {
 		_printTree(node->left, y + Y_OFFSET, x);
@@ -422,8 +449,9 @@ void _printTree(RB_node* node, int y, int prev_x) {
 		}
 	}
 }
+
+
 void PrintTree(RB_tree* tree, int start_y_pos) {
 	_printTree(tree->root, start_y_pos, 0);
-	SetPos(0, TreeHeight(tree->root) + start_y_pos + 2);
 	x = 1;
 }
